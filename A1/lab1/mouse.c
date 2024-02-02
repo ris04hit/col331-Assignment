@@ -72,9 +72,10 @@ mouseinit(void)
 void
 mouseintr(void)
 {
-    uchar packet[3];
-
     // Implement your code here
+    uchar packet[3];
+    mousewait_recv();
+
     while (inb(MSSTATP) & 0x1){
         // Receive packet
         mousewait_recv();
