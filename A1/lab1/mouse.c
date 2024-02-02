@@ -77,6 +77,7 @@ mouseintr(void)
     // Implement your code here
     while (inb(MSSTATP) & 0x1){
         // Receive packet
+        mousewait_recv();
         packet[0] = inb(MSDATAP);
         mousewait_recv();
         packet[1] = inb(MSDATAP);
@@ -84,9 +85,9 @@ mouseintr(void)
         packet[2] = inb(MSDATAP);
 
         // Process the packet
-        if (packet[0] & 0x1) cprintf("LEFT\n");     // Left Click
-        if (packet[0] & 0x2) cprintf("RIGHT\n");    // Right Click
-        if (packet[0] & 0x4) cprintf("MID\n");      // Middle Click
+        if (packet[0] & 0x1<<0) cprintf("LEFT\n");     // Left Click
+        if (packet[0] & 0x1<<1) cprintf("RIGHT\n");    // Right Click
+        if (packet[0] & 0x1<<2) cprintf("MID\n");      // Middle Click
     }
     return;
 }
