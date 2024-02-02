@@ -6,6 +6,7 @@ OBJS = \
 	mp.o\
 	picirq.o\
 	uart.o\
+	mouse.o\
 	string.o\
 	proc.o\
 	spinlock.o\

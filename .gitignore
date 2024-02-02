@@ -1,1 +1,6 @@
 *.zip
+*.tar.gz
+
+# A1
+A1/check_scripts/test_dir
+A1/check_scripts/marks.csv
