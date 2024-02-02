@@ -33,6 +33,7 @@ void
 mouseinit(void)
 {
     // Implement your code here
+    cprintf("Mouse has been initialized\n");    // Do not modify this line
     return;
 }
 
