@@ -7,9 +7,11 @@ struct stat;
 // bio.c
 void            binit(void);
 struct buf*     bread(uint, uint);
+struct buf*     lget(uint, uint);
 struct buf*     bread_wr(uint, uint);
 void            bwrite(struct buf*);
 void            brelse(struct buf *b);
+void            lrelse(struct buf *b);
 
 // console.c
 void            cprintf(char*, ...);

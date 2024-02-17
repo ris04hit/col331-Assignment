@@ -30,7 +30,7 @@ struct {
   // Linked list of all buffers, through prev/next.
   // head.next is most recently used.
   struct buf head;
-} bcache;
+} bcache, lcache;
 
 void
 binit(void)
@@ -45,6 +45,16 @@ binit(void)
     b->prev = &bcache.head;
     bcache.head.next->prev = b;
     bcache.head.next = b;
+  }
+
+  // Create linked list of buffers
+  lcache.head.prev = &lcache.head;
+  lcache.head.next = &lcache.head;
+  for(b = lcache.buf; b < lcache.buf+NBUF; b++){
+    b->next = lcache.head.next;
+    b->prev = &lcache.head;
+    lcache.head.next->prev = b;
+    lcache.head.next = b;
   }
 }
 
@@ -79,6 +89,37 @@ bget(uint dev, uint blockno)
   panic("bget: no buffers");
 }
 
+// Look through buffer cache for block on device dev.
+// If not found, allocate a buffer.
+// In either case, return locked buffer.
+struct buf*
+lget(uint dev, uint blockno)
+{
+  struct buf *b;
+
+  // Is the block already cached?
+  for(b = lcache.head.next; b != &lcache.head; b = b->next){
+    if(b->dev == dev && b->blockno == blockno){
+      b->refcnt++;
+      return b;
+    }
+  }
+
+  // Not cached; recycle an unused buffer.
+  // Even if refcnt==0, B_DIRTY indicates a buffer is in use
+  // because log.c has modified it but not yet committed it.
+  for(b = lcache.head.prev; b != &lcache.head; b = b->prev){
+    if(b->refcnt == 0 && (b->flags & B_DIRTY) == 0) {
+      b->dev = dev;
+      b->blockno = blockno;
+      b->flags = 0;
+      b->refcnt = 1;
+      return b;
+    }
+  }
+  panic("lget: no buffers");
+}
+
 // Return a locked buf with the contents of the indicated block.
 struct buf*
 bread(uint dev, uint blockno)
@@ -100,10 +141,42 @@ bwrite(struct buf *b)
   iderw(b);
 }
 
+// Release a buffer.
+// Move to the head of the MRU list.
+void
+lrelse(struct buf *b)
+{
+  b->refcnt--;
+  if (b->refcnt == 0) {
+    // no one is waiting for it.
+    b->next->prev = b->prev;
+    b->prev->next = b->next;
+    b->next = lcache.head.next;
+    b->prev = &lcache.head;
+    lcache.head.next->prev = b;
+    lcache.head.next = b;
+  }
+}
+
 struct buf* 
 bread_wr(uint dev, uint blockno) {
   // IMPLEMENT YOUR CODE HERE
-  return 0;
+  struct buf* b;
+
+  b = bget(dev, blockno);
+  if ((b->flags & B_VALID) == 0) {
+    iderw(b);
+  }
+
+  // Log Buffer Cache 
+  struct buf* l = lget(b->dev, b->blockno);
+  if((l->flags & B_VALID) == 0) {
+    memmove(l->data, b->data, BSIZE);
+    l->flags |= B_DIRTY;
+  }
+  lrelse(l);
+
+  return b;
 }
 
 // Release a buffer.

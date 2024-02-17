@@ -40,6 +40,7 @@ struct log {
   int size;
   int committing;  // in commit(), please wait.
   int dev;
+  int reboot;
   struct logheader lh;
 };
 struct log log;
@@ -58,7 +59,9 @@ initlog(int dev)
   log.start = sb.logstart;
   log.size = sb.nlog;
   log.dev = dev;
+  log.reboot = 1;
   recover_from_log();
+  log.reboot = 0;
 }
 
 // Copy committed blocks from log to their home location
@@ -71,12 +74,19 @@ install_trans(void)
     if (LOG_FLAG == 5) {
       if (tail == log.lh.n/2) panic("[UNDOLOG] Panic in install_trans type 5");
     }
-    struct buf *lbuf = bread(log.dev, log.start+tail+1); // read log block
-    struct buf *dbuf = bread(log.dev, log.lh.block[tail]); // read dst
-    memmove(dbuf->data, lbuf->data, BSIZE);  // copy block to dst
-    bwrite(dbuf);  // write dst to disk
-    brelse(lbuf);
-    brelse(dbuf);
+    if (log.reboot == 1){
+      struct buf *lbuf = bread(log.dev, log.start+tail+1); // read log block
+      struct buf *dbuf = bread(log.dev, log.lh.block[tail]); // read dst
+      memmove(dbuf->data, lbuf->data, BSIZE);  // copy block to dst
+      bwrite(dbuf);  // write dst to disk
+      brelse(lbuf);
+      brelse(dbuf);
+    }
+    else{
+      struct buf *dbuf = bread(log.dev, log.lh.block[tail]);
+      bwrite(dbuf);
+      brelse(dbuf);
+    }
   }
 }
 
@@ -183,6 +193,12 @@ log_write(struct buf *b)
       break;
   }
   log.lh.block[i] = b->blockno;
+  struct buf *from = lget(b->dev, b->blockno);  // cache block
+  struct buf *to = bread(b->dev, log.start+i+1);
+  memmove(to->data, from->data, BSIZE);
+  bwrite(to);
+  lrelse(from);
+  brelse(to);
   if (i == log.lh.n)
     log.lh.n++;
   b->flags |= B_DIRTY; // prevent eviction
