@@ -6,5 +6,5 @@ A1/check_scripts/test_dir
 A1/check_scripts/marks.csv
 
 # A2
-A1/check_scripts/test_dir
-A1/check_scripts/marks.csv
+A2/check_script*/test_dir
+A2/check_script*/marks.csv
