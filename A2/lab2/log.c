@@ -197,6 +197,7 @@ log_write(struct buf *b)
   struct buf *to = bread(b->dev, log.start+i+1);
   memmove(to->data, from->data, BSIZE);
   bwrite(to);
+  from->flags &= ~B_DIRTY;
   lrelse(from);
   brelse(to);
   if (i == log.lh.n)
