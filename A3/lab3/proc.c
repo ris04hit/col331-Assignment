@@ -86,7 +86,7 @@ pinit(int pol)
   extern char _binary_initcode_start[], _binary_initcode_size[];
 
   p = allocproc();
-  
+  p->policy = pol;
   initproc = p;
 
   memmove(p->offset, _binary_initcode_start, (int)_binary_initcode_size);
@@ -117,8 +117,10 @@ void
 scheduler(void)
 {
   struct proc *p;
+  struct proc *diff_p = 0;
   struct cpu *c = mycpu();
   c->proc = 0;
+  int time_count = 0;
   
   for(;;){
     // Enable interrupts on this processor.
@@ -129,12 +131,34 @@ scheduler(void)
       if(p->state != RUNNABLE)
         continue;
 
-      // Switch to chosen process. 
-      c->proc = p;
-      p->state = RUNNING;
+      if ((time_count == 0 && p->policy == 1) || (time_count != 0 && p->policy == 0)){
+        // Switch to chosen process. 
+        c->proc = p;
+        p->state = RUNNING;
 
-      switchuvm(p);
-      swtch(&(c->scheduler), p->context);
+        switchuvm(p);
+        swtch(&(c->scheduler), p->context);
+
+        time_count = (time_count + 1)%10;
+        diff_p = 0;
+      }
+      else{
+        if (diff_p){
+          if (diff_p == p){
+            // Switch to chosen process. 
+            c->proc = p;
+            p->state = RUNNING;
+
+            switchuvm(p);
+            swtch(&(c->scheduler), p->context);
+            
+            diff_p = 0;
+          }
+        }
+        else{
+          diff_p = p;
+        }
+      }
     }
   }
 }

@@ -8,3 +8,9 @@ A1/check_scripts/marks.csv
 # A2
 A2/check_script*/test_dir
 A2/check_script*/marks.csv
+
+# A3
+A3/*check_script*/test_dir
+A3/*check_script*/marks.csv
+A3/Achyut
+A3/part2
